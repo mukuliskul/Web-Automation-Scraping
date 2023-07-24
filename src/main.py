@@ -1,3 +1,4 @@
+# Import necessary libraries
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -11,120 +12,123 @@ import xlwings as xw
 import math
 import selenium
 
-excel1='2016-17 green.xlsx'
-excel2='depts 51-74 year 18-19.xlsx'
-excel3='2018-19 depts 61-70 PU Publications.xlsx'
+# Excel file containing the list of titles
+exampleExcel = 'exampleExcelOfPublications'
 
-wb = xw.Book(excel3)
+# Load Excel workbook and specify the sheet
+wb = xw.Book(exampleExcel)
 sht = wb.sheets('Bibliogrphic details')
 
-deptname='zoology'
-difference=int(387)
+# Department name and difference value for cell count
+deptname = 'zoology'
+difference = int(387)
 
-filecount=int(input('Enter FILE NUMBER --> ' )) #check the numbering once of the continous word files
-cellcount=filecount+difference
+# Prompt user to enter the FILE NUMBER to start processing
+filecount = int(input('Enter FILE NUMBER --> '))  # check the numbering once of the continuous word files
+cellcount = filecount + difference
 print(' ')
 
+# Extract title list from Excel sheet
 title_list = sht.range(f'C{cellcount}:C1000').value
-""" title_list=["Role of GSK 3â in regulation of canonical Wnt/â-Catenin signaling and PI 3K/AKToncognenic pathway in colon cancer. Cancer Investigation.2017, DOI 1080/07357907. 2017.1337783.","Role of angeogenic factors of herbal origin in regulation of molecular pathwaysthat control tumor angiogenesis Tumor Biology. 37, 14341-354."] """
 
+# Initialize Selenium WebDriver (Chrome) and wait
 driver = webdriver.Chrome('/Users/mukulsharma/Desktop/CS/python/automation/chromedriver')
 wait = WebDriverWait(driver, 200)
 driver.get('https://scholar.google.com')
 time.sleep(0.8)
-cellnumbercount=int(cellcount)
+cellnumbercount = int(cellcount)
 
+# Loop through each title in the list
 for title in title_list:
-    cellnumbercount+=1
-    renamed=title[0:30]
-    APAdocx=f'{filecount} {deptname} {renamed}.docx'
-    APAlist=[]
-    count=0
+    cellnumbercount += 1
+    renamed = title[0:30]
+    APAdocx = f'{filecount} {deptname} {renamed}.docx'
+    APAlist = []
+    count = 0
 
-    searchBox = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="gs_hdr_tsi"]')))    
+    # Search for the title on Google Scholar
+    searchBox = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="gs_hdr_tsi"]')))
     searchBox.send_keys(title)
     time.sleep(1)
-    search= webdriver.ActionChains(driver).send_keys(Keys.ENTER).perform()
-    command=input("Enter Operation --> ")
-    if command=='n' or command=='N':
-        filecount+=1
+    search = webdriver.ActionChains(driver).send_keys(Keys.ENTER).perform()
+    command = input("Enter Operation --> ")
+
+    # Check if the user wants to skip processing this title
+    if command == 'n' or command == 'N':
+        filecount += 1
         driver.get('https://scholar.google.com')
         print(cellnumbercount)
         print(filecount)
         continue
-        
 
     else:
+        # Click on the "Cited by" link to get the list of citations
         citedbyLink = wait.until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, 'Cited by')))
-        pagetotaltxt=citedbyLink.text
-        pagetotal=pagetotaltxt.lstrip('Cited by ')
+        pagetotaltxt = citedbyLink.text
+        pagetotal = pagetotaltxt.lstrip('Cited by ')
         citedbyLink.click()
-    
-        citeLINK=driver.find_elements(By.LINK_TEXT, 'Cite')
+
+        # Get the list of "Cite" links for the current page and extract the citation details
+        citeLINK = driver.find_elements(By.LINK_TEXT, 'Cite')
         for i in citeLINK:
-            count+=1
+            count += 1
             time.sleep(1)
             i.click()
             time.sleep(1)
-            APAclick=wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="gs_citt"]/table/tbody/tr[2]/td/div')))
-            APAtext=str(count)+'. '+str(APAclick.text)
+            APAclick = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="gs_citt"]/table/tbody/tr[2]/td/div')))
+            APAtext = str(count) + '. ' + str(APAclick.text)
             APAlist.append(APAtext)
             time.sleep(1)
             webdriver.ActionChains(driver).send_keys(Keys.ESCAPE).perform()
-    
-        totaldecimal=int(pagetotal)/10
-        totalroundoff=math.ceil(float(totaldecimal))
-        finaltotal=int(totalroundoff)+1
-        finaltotal2=int(totalroundoff)-1
-        
-        if finaltotal<=11:
-            for i in range(2,int(finaltotal)):
-                next=driver.find_element(By.LINK_TEXT, str(i)).click()
-                citeLINK=[]
-                citeLINK=driver.find_elements(By.LINK_TEXT, 'Cite')
+
+        # Calculate the number of pages with citations and navigate to each page
+        totaldecimal = int(pagetotal) / 10
+        totalroundoff = math.ceil(float(totaldecimal))
+        finaltotal = int(totalroundoff) + 1
+        finaltotal2 = int(totalroundoff) - 1
+
+        if finaltotal <= 11:
+            # If the number of pages is less than or equal to 11, navigate to each page and extract citations
+            for i in range(2, int(finaltotal)):
+                next = driver.find_element(By.LINK_TEXT, str(i)).click()
+                citeLINK = []
+                citeLINK = driver.find_elements(By.LINK_TEXT, 'Cite')
                 for i in citeLINK:
-                    count+=1
+                    count += 1
                     time.sleep(1.5)
                     i.click()
                     time.sleep(1)
-                    APAclick=wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="gs_citt"]/table/tbody/tr[2]/td/div')))
-                    #APAclick=driver.find_element(By.XPATH, '//*[@id="gs_citt"]/table/tbody/tr[2]/td/div')
-                    APAtext=str(count)+'. '+str(APAclick.text)
+                    APAclick = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="gs_citt"]/table/tbody/tr[2]/td/div')))
+                    APAtext = str(count) + '. ' + str(APAclick.text)
                     APAlist.append(APAtext)
                     time.sleep(1)
                     webdriver.ActionChains(driver).send_keys(Keys.ESCAPE).perform()
         else:
+            # If there are more than 11 pages, navigate to the next pages and extract citations
             for i in range(int(finaltotal2)):
-                next=driver.find_element(By.LINK_TEXT, 'Next').click()
-                citeLINK=[]
-                citeLINK=driver.find_elements(By.LINK_TEXT, 'Cite')
+                next = driver.find_element(By.LINK_TEXT, 'Next').click()
+                citeLINK = []
+                citeLINK = driver.find_elements(By.LINK_TEXT, 'Cite')
                 for i in citeLINK:
-                    count+=1
+                    count += 1
                     time.sleep(1.5)
                     i.click()
                     time.sleep(1)
-                    APAclick=wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="gs_citt"]/table/tbody/tr[2]/td/div')))
-                    #APAclick=driver.find_element(By.XPATH, '//*[@id="gs_citt"]/table/tbody/tr[2]/td/div')
-                    APAtext=str(count)+'. '+str(APAclick.text)
+                    APAclick = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="gs_citt"]/table/tbody/tr[2]/td/div')))
+                    APAtext = str(count) + '. ' + str(APAclick.text)
                     APAlist.append(APAtext)
                     time.sleep(1)
                     webdriver.ActionChains(driver).send_keys(Keys.ESCAPE).perform()
-                
-    
-    
-        document=Document()
+
+        # Create a Word document and save the title and citation list
+        document = Document()
         document.add_paragraph(title)
         for i in APAlist:
-            para=document.add_paragraph(i)
+            para = document.add_paragraph(i)
         document.save(APAdocx)
-        
-        filecount+=1
+
+        filecount += 1
         driver.get('https://scholar.google.com')
-        
+
         print(cellnumbercount)
         print(filecount)
-
-
-
-
-
